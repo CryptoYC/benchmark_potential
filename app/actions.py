@@ -1,8 +1,30 @@
 import json
-import time
 import requests
+from dataclasses import dataclass
 from .models import Repository
+from . import scheduler
 from . import db
+
+
+@dataclass
+class Repository(db.Model):
+    id: int
+    name: str
+    full_name: str
+    html_url: str
+    stargazers_count: int
+    watchers_count: int
+    forks_count: int
+    open_issues_count: int
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50))
+    full_name = db.Column(db.String(150))
+    html_url = db.Column(db.Text)
+    stargazers_count = db.Column(db.Integer)
+    watchers_count = db.Column(db.Integer)
+    forks_count = db.Column(db.Integer)
+    open_issues_count = db.Column(db.Integer)
 
 
 def get_repositories_topic():
@@ -12,8 +34,6 @@ def get_repositories_topic():
     """
     repositories = []
     for num in range(1, 11):
-        # Sleep
-        time.sleep(1)
         # Get the repositories
         url = "https://api.github.com/search/repositories"
         headers = {'Accept': "application/vnd.github.mercy-preview+json", 'Host': "api.github.com"}
@@ -43,3 +63,11 @@ def insert_repositories_topic(repositories):
     """
     db.session.add_all(repositories)
     db.session.commit()
+
+
+@scheduler.task('interval', id='get_repositories_topic_task', seconds=10)
+def get_repositories_topic_task():
+    print("benchmark : Start getting Github data")
+    repositories = get_repositories_topic()
+    print("benchmark : Start inserting database")
+    insert_repositories_topic(repositories)

@@ -21,6 +21,6 @@ def create_app():
     scheduler.init_app(app)
     scheduler.start()
     with app.app_context():
-        from . import tasks
+        from . import actions
         return app
 
