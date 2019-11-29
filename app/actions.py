@@ -1,12 +1,12 @@
 import json
 import requests
 from dataclasses import dataclass
-from .models import Repository
 from . import scheduler
 from . import db
 from threading import Lock
 
 lock = Lock()
+
 
 @dataclass
 class Repository(db.Model):
@@ -20,8 +20,8 @@ class Repository(db.Model):
     open_issues_count: int
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50))
-    full_name = db.Column(db.String(150))
+    name = db.Column(db.Text)
+    full_name = db.Column(db.Text)
     html_url = db.Column(db.Text)
     stargazers_count = db.Column(db.Integer)
     watchers_count = db.Column(db.Integer)
@@ -68,7 +68,7 @@ def insert_repositories_topic(repositories):
         db.session.commit()
 
 
-@scheduler.task('interval', id='get_repositories_topic_task', seconds=10)
+@scheduler.task('interval', id='get_repositories_topic_task', seconds=60)
 def get_repositories_topic_task():
     had_lock = lock.acquire(blocking=False)
     # Is get lock?
