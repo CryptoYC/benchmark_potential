@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from .models import Repository
 from . import scheduler
 from . import db
+from threading import Lock
 
+lock = Lock()
 
 @dataclass
 class Repository(db.Model):
@@ -61,13 +63,22 @@ def insert_repositories_topic(repositories):
     :param repositories:
     :return:
     """
-    db.session.add_all(repositories)
-    db.session.commit()
+    with scheduler.app.app_context():
+        db.session.add_all(repositories)
+        db.session.commit()
 
 
 @scheduler.task('interval', id='get_repositories_topic_task', seconds=10)
 def get_repositories_topic_task():
-    print("benchmark : Start getting Github data")
-    repositories = get_repositories_topic()
-    print("benchmark : Start inserting database")
-    insert_repositories_topic(repositories)
+    had_lock = lock.acquire(blocking=False)
+    # Is get lock?
+    if had_lock:
+        try:
+            print("benchmark : Start getting Github data")
+            repositories = get_repositories_topic()
+            print("benchmark : Start inserting database")
+            insert_repositories_topic(repositories)
+            lock.release()
+        except Exception as e:
+            lock.release()
+            raise e
