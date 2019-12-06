@@ -68,7 +68,7 @@ def insert_repositories_topic(repositories):
         db.session.commit()
 
 
-@scheduler.task('interval', id='get_repositories_topic_task', seconds=60)
+@scheduler.task('interval', id='get_repositories_topic_task', hours=24)
 def get_repositories_topic_task():
     had_lock = lock.acquire(blocking=False)
     # Is get lock?
