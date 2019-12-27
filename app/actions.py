@@ -1,4 +1,6 @@
 import json
+import logging
+import datetime
 import requests
 from dataclasses import dataclass
 from . import scheduler
@@ -43,7 +45,7 @@ def get_repositories_topic():
         response = requests.request("GET", url, headers=headers, params=querystring)
         topic_json = json.loads(response.text)
         # Get the name , stars and so on
-        print(num)
+        logging.debug("benchmark : Page turning"+str(num)+" at "+datetime.datetime.now().strftime("%Y.%m.%d-%H:%M:%S"))
         items = topic_json["items"]
         if len(items) > 0:
             for item in items:
@@ -68,15 +70,14 @@ def insert_repositories_topic(repositories):
         db.session.commit()
 
 
-@scheduler.task('interval', id='get_repositories_topic_task', hours=24)
+@scheduler.task('cron', id='get_repositories_topic_task', day ='*')
 def get_repositories_topic_task():
     had_lock = lock.acquire(blocking=False)
-    # Is get lock?
     if had_lock:
         try:
-            print("benchmark : Start getting Github data")
+            logging.debug("benchmark : Start getting Github data")
             repositories = get_repositories_topic()
-            print("benchmark : Start inserting database")
+            logging.debug("benchmark : Start inserting database")
             insert_repositories_topic(repositories)
             lock.release()
         except Exception as e:
